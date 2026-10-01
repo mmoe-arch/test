@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f2">
+  <title>日常 · 日历</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a24;
+      --muted: #758078;
+      --line: #e6ebe5;
+      --surface: #fff;
+      --canvas: #f4f7f2;
+      --green: #286447;
+      --green-soft: #e8f1e9;
+      --coral: #d86f55;
+      --shadow: 0 18px 60px rgb(35 58 43 / 8%);
+      font-family: "Avenir Next", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--canvas);
+      background-image: radial-gradient(#c6d7c8 0.65px, transparent 0.65px);
+      background-size: 18px 18px;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .topbar {
+      height: 72px;
+      padding: 0 clamp(20px, 5vw, 76px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgb(40 100 71 / 10%);
+      background: rgb(244 247 242 / 88%);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; letter-spacing: 0; }
+    .brand-mark { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; color: white; background: var(--green); font-size: 15px; }
+    .top-date { color: var(--muted); font-size: 13px; }
+
+    main { width: min(1200px, calc(100% - 40px)); margin: 44px auto 64px; }
+    .page-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 24px; }
+    .eyebrow { margin: 0 0 8px; color: var(--green); font-size: 11px; font-weight: 700; letter-spacing: 1.8px; }
+    h1 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: clamp(30px, 4vw, 43px); font-weight: 500; letter-spacing: 0; }
+    .heading-note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+
+    .calendar-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      min-height: 610px;
+      overflow: hidden;
+      border: 1px solid #e6ebe5;
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .calendar-main { padding: 27px clamp(18px, 3.2vw, 42px) 32px; }
+    .calendar-toolbar { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 21px; }
+    .month-title { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 25px; font-weight: 500; letter-spacing: 0; }
+    .month-title span { padding-left: 8px; color: #96a097; font-family: inherit; font-size: 15px; }
+    .toolbar-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-button, .today-button, .add-button {
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+    }
+    .icon-button { width: 36px; font-size: 20px; }
+    .today-button { padding: 0 13px; color: var(--green); font-size: 12px; font-weight: 650; }
+    .icon-button:hover, .today-button:hover { border-color: #a9c2ae; background: #f7faf6; }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible { outline: 3px solid rgb(40 100 71 / 24%); outline-offset: 2px; }
+
+    .weekdays, .days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .weekdays { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .weekday { text-align: center; color: #8a958c; font-size: 11px; font-weight: 700; }
+    .weekday:first-child, .weekday:last-child { color: #bd7b68; }
+    .days-grid { grid-auto-rows: minmax(70px, 1fr); }
+
+    .day-cell {
+      position: relative;
+      min-width: 0;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 3px 7px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .day-cell:nth-child(7n + 1), .day-cell:nth-child(7n) { background: linear-gradient(180deg, rgb(250 248 245 / 55%), transparent); }
+    .day-cell:hover { background-color: #f5f8f4; }
+    .day-number { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; color: #3a453e; font-size: 13px; }
+    .day-cell.outside .day-number { color: #bdc5be; }
+    .day-cell.today .day-number { color: #fff; background: var(--green); font-weight: 700; }
+    .day-cell.selected:not(.today) .day-number { color: var(--green); background: var(--green-soft); font-weight: 700; }
+    .day-dots { height: 5px; display: flex; justify-content: center; gap: 3px; }
+    .day-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--coral); }
+
+    .agenda {
+      display: flex;
+      flex-direction: column;
+      padding: 28px 23px 22px;
+      border-left: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+    .agenda-label { margin: 0 0 9px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    .agenda-date { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 22px; font-weight: 500; line-height: 1.4; }
+    .agenda-weekday { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .agenda-rule { height: 1px; margin: 20px 0 14px; background: var(--line); }
+    .agenda-list { flex: 1; min-height: 160px; }
+    .empty-state { padding: 20px 0; color: #929b94; font-size: 12px; line-height: 1.8; }
+    .event-item { position: relative; margin: 0 0 9px; padding: 11px 27px 11px 12px; border-left: 2px solid var(--coral); border-radius: 0 4px 4px 0; background: #f3f5f1; animation: appear 180ms ease both; }
+    .event-time { display: block; margin-bottom: 4px; color: #8a958c; font-size: 10px; }
+    .event-name { margin: 0; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5; }
+    .delete-event { position: absolute; top: 8px; right: 7px; width: 22px; height: 22px; border: 0; border-radius: 4px; color: #89928b; background: transparent; cursor: pointer; font-size: 17px; }
+    .delete-event:hover { color: #a33b30; background: #f5e9e5; }
+    .add-button { width: 100%; flex: 0 0 auto; gap: 8px; border-color: var(--green); color: #fff; background: var(--green); font-size: 12px; font-weight: 650; }
+    .add-button:hover { border-color: #1d5038; background: #1d5038; }
+
+    dialog { width: min(420px, calc(100% - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 24px 80px rgb(20 35 25 / 22%); }
+    dialog::backdrop { background: rgb(26 37 29 / 38%); backdrop-filter: blur(2px); }
+    .dialog-content { padding: 25px; }
+    .dialog-header { display: flex; align-items: start; justify-content: space-between; margin-bottom: 20px; }
+    .dialog-header h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 23px; font-weight: 500; }
+    .dialog-date { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .close-button { width: 30px; height: 30px; border: 0; border-radius: 4px; background: transparent; cursor: pointer; font-size: 20px; }
+    .field-label { display: block; margin: 15px 0 7px; color: #58645b; font-size: 11px; font-weight: 700; }
+    .field-input { width: 100%; height: 42px; padding: 0 11px; border: 1px solid #dce3dc; border-radius: 4px; color: var(--ink); background: white; font-size: 13px; }
+    .field-input:focus { border-color: #8eaf95; }
+    .form-actions { display: flex; justify-content: end; gap: 8px; margin-top: 23px; }
+    .form-actions button { min-width: 76px; height: 36px; padding: 0 13px; border: 1px solid var(--line); border-radius: 4px; background: white; cursor: pointer; font-size: 12px; }
+    .form-actions .save-button { border-color: var(--green); color: white; background: var(--green); }
+    @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 620px); margin-top: 29px; }
+      .topbar { height: 62px; padding: 0 18px; }
+      .calendar-shell { grid-template-columns: 1fr; }
+      .calendar-main { padding: 20px 14px 23px; }
+      .calendar-toolbar { margin-bottom: 15px; }
+      .month-title { font-size: 22px; }
+      .days-grid { grid-auto-rows: minmax(57px, 1fr); }
+      .day-cell { min-height: 57px; padding-top: 7px; gap: 3px; }
+      .day-number { width: 29px; height: 29px; }
+      .agenda { min-height: 280px; padding: 22px 20px 18px; border-top: 1px solid var(--line); border-left: 0; }
+      .agenda-list { min-height: 92px; }
+      .page-heading { margin-bottom: 18px; }
+      .heading-note { max-width: 220px; line-height: 1.6; }
+    }
+
+    @media (max-width: 390px) {
+      .top-date { font-size: 11px; }
+      .toolbar-actions { gap: 5px; }
+      .icon-button { width: 32px; height: 34px; }
+      .today-button { height: 34px; padding: 0 9px; }
+      .weekday { font-size: 10px; }
+      .calendar-main { padding-right: 9px; padding-left: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">日</span><span>日常日历</span></div>
+    <div class="top-date" id="top-date"></div>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">YOUR DAYS, IN VIEW</p>
+        <h1>把日子排开</h1>
+        <p class="heading-note">留一点空白，也留一点期待。</p>
+      </div>
+    </div>
+
+    <section class="calendar-shell" aria-label="日历">
+      <div class="calendar-main">
+        <div class="calendar-toolbar">
+          <h2 class="month-title" id="month-title"></h2>
+          <div class="toolbar-actions">
+            <button class="today-button" id="today-button" type="button">今天</button>
+            <button class="icon-button" id="prev-month" type="button" aria-label="上个月" title="上个月">‹</button>
+            <button class="icon-button" id="next-month" type="button" aria-label="下个月" title="下个月">›</button>
+          </div>
+        </div>
+        <div class="weekdays" aria-hidden="true">
+          <span class="weekday">一</span><span class="weekday">二</span><span class="weekday">三</span><span class="weekday">四</span><span class="weekday">五</span><span class="weekday">六</span><span class="weekday">日</span>
+        </div>
+        <div class="days-grid" id="days-grid" role="grid" aria-label="月份日期"></div>
+      </div>
+      <aside class="agenda" aria-label="当日安排">
+        <p class="agenda-label">DAY PLAN</p>
+        <h2 class="agenda-date" id="agenda-date"></h2>
+        <p class="agenda-weekday" id="agenda-weekday"></p>
+        <div class="agenda-rule"></div>
+        <div class="agenda-list" id="agenda-list"></div>
+        <button class="add-button" id="add-event" type="button"><span aria-hidden="true">＋</span> 添加日程</button>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="event-dialog">
+    <form class="dialog-content" id="event-form">
+      <div class="dialog-header">
+        <div><h2>添加日程</h2><p class="dialog-date" id="dialog-date"></p></div>
+        <button class="close-button" id="close-dialog" type="button" aria-label="关闭">×</button>
+      </div>
+      <label class="field-label" for="event-title">日程名称</label>
+      <input class="field-input" id="event-title" name="title" type="text" maxlength="80" placeholder="例如：和朋友喝咖啡" required>
+      <label class="field-label" for="event-time">时间</label>
+      <input class="field-input" id="event-time" name="time" type="time">
+      <div class="form-actions">
+        <button id="cancel-dialog" type="button">取消</button>
+        <button class="save-button" type="submit">保存日程</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const today = new Date();
+    const dateFormatter = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" });
+    const weekdayFormatter = new Intl.DateTimeFormat("zh-CN", { weekday: "long" });
+    const monthFormatter = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long" });
+    let visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    let selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    function dateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function loadEvents() {
+      try {
+        const stored = JSON.parse(localStorage.getItem("daily-calendar-events") || "{}");
+        return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+      } catch {
+        return {};
+      }
+    }
+
+    let events = loadEvents();
+
+    function saveEvents() {
+      try {
+        localStorage.setItem("daily-calendar-events", JSON.stringify(events));
+      } catch {
+        window.alert("浏览器暂时无法保存日程，请检查本地存储设置。");
+      }
+    }
+
+    function renderCalendar() {
+      document.getElementById("month-title").innerHTML = `${monthFormatter.format(visibleMonth).replace(/年.*/, "年")}<span>${visibleMonth.getMonth() + 1}月</span>`;
+      const grid = document.getElementById("days-grid");
+      grid.replaceChildren();
+
+      const firstOfMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+      const offset = (firstOfMonth.getDay() + 6) % 7;
+      const daysInMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate();
+      const cellCount = Math.ceil((offset + daysInMonth) / 7) * 7;
+
+      for (let index = 0; index < cellCount; index += 1) {
+        const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), index - offset + 1);
+        const key = dateKey(date);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "day-cell";
+        button.setAttribute("role", "gridcell");
+        button.setAttribute("aria-label", `${dateFormatter.format(date)}${events[key]?.length ? `，${events[key].length} 个日程` : ""}`);
+        if (date.getMonth() !== visibleMonth.getMonth()) button.classList.add("outside");
+        if (key === dateKey(today)) button.classList.add("today");
+        if (key === dateKey(selectedDate)) button.classList.add("selected");
+
+        const number = document.createElement("span");
+        number.className = "day-number";
+        number.textContent = String(date.getDate());
+        button.append(number);
+
+        const dots = document.createElement("span");
+        dots.className = "day-dots";
+        dots.setAttribute("aria-hidden", "true");
+        (events[key] || []).slice(0, 3).forEach(() => {
+          const dot = document.createElement("span");
+          dot.className = "day-dot";
+          dots.append(dot);
+        });
+        button.append(dots);
+        button.addEventListener("click", () => {
+          selectedDate = date;
+          visibleMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+          render();
+        });
+        grid.append(button);
+      }
+    }
+
+    function renderAgenda() {
+      document.getElementById("agenda-date").textContent = dateFormatter.format(selectedDate);
+      document.getElementById("agenda-weekday").textContent = weekdayFormatter.format(selectedDate);
+      const list = document.getElementById("agenda-list");
+      list.replaceChildren();
+      const dayEvents = [...(events[dateKey(selectedDate)] || [])].sort((first, second) => (first.time || "").localeCompare(second.time || ""));
+
+      if (dayEvents.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "今天还没有安排。\n给自己留一点自由时间吧。";
+        empty.style.whiteSpace = "pre-line";
+        list.append(empty);
+        return;
+      }
+
+      dayEvents.forEach((event, index) => {
+        const item = document.createElement("article");
+        item.className = "event-item";
+        const time = document.createElement("time");
+        time.className = "event-time";
+        time.textContent = event.time || "全天";
+        const name = document.createElement("p");
+        name.className = "event-name";
+        name.textContent = event.title;
+        const remove = document.createElement("button");
+        remove.className = "delete-event";
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", `删除日程：${event.title}`);
+        remove.addEventListener("click", () => {
+          const key = dateKey(selectedDate);
+          events[key].splice(index, 1);
+          if (events[key].length === 0) delete events[key];
+          saveEvents();
+          render();
+        });
+        item.append(time, name, remove);
+        list.append(item);
+      });
+    }
+
+    function render() {
+      renderCalendar();
+      renderAgenda();
+    }
+
+    document.getElementById("top-date").textContent = dateFormatter.format(today);
+    document.getElementById("prev-month").addEventListener("click", () => {
+      visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+      selectedDate = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), Math.min(selectedDate.getDate(), new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate()));
+      render();
+    });
+    document.getElementById("next-month").addEventListener("click", () => {
+      visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+      selectedDate = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), Math.min(selectedDate.getDate(), new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate()));
+      render();
+    });
+    document.getElementById("today-button").addEventListener("click", () => {
+      visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      render();
+    });
+
+    const dialog = document.getElementById("event-dialog");
+    const eventForm = document.getElementById("event-form");
+    document.getElementById("add-event").addEventListener("click", () => {
+      document.getElementById("dialog-date").textContent = dateFormatter.format(selectedDate);
+      eventForm.reset();
+      dialog.showModal();
+      document.getElementById("event-title").focus();
+    });
+    document.getElementById("close-dialog").addEventListener("click", () => dialog.close());
+    document.getElementById("cancel-dialog").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    eventForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(eventForm);
+      const title = String(formData.get("title") || "").trim();
+      if (!title) return;
+      const key = dateKey(selectedDate);
+      events[key] ||= [];
+      events[key].push({ title, time: String(formData.get("time") || "") });
+      saveEvents();
+      dialog.close();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
