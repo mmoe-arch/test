@@ -349,7 +349,7 @@
         remove.setAttribute("aria-label", `删除日程：${event.title}`);
         remove.addEventListener("click", () => {
           const key = dateKey(selectedDate);
-          events[key].splice(index, 1);
+          events[key].splice(events[key].indexOf(event), 1);
           if (events[key].length === 0) delete events[key];
           saveEvents();
           render();
